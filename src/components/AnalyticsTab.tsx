@@ -19,32 +19,52 @@ const AnalyticsTab: React.FC = () => {
   const [chartKey, setChartKey] = useState(0);
   const [allProducts, setAllProducts] = useState<Record<string, number>>({});
   const [latestSales, setLatestSales] = useState<Sale[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Fetch all sales data
   useEffect(() => {
     const fetchAllData = async () => {
-      const result = await dispatch(fetchSales({ 
-        page: 1, 
-        limit: 100000, // Fetch all records
-        sortField: 'date',
-        sortDirection: 'desc'
-      })).unwrap();
-      
-      // Calculate all products
-      const allProductsData = result.data.reduce((acc: Record<string, number>, sale: Sale) => {
-        acc[sale.product] = (acc[sale.product] || 0) + Number(sale.amount);
-        return acc;
-      }, {} as Record<string, number>);
-      setAllProducts(allProductsData);
-      setLatestSales(result.data);
-      setChartKey(prev => prev + 1);
+      try {
+        setIsLoading(true);
+        const result = await dispatch(fetchSales({ 
+          page: 1, 
+          limit: 100000,
+          sortField: 'date',
+          sortDirection: 'desc'
+        })).unwrap();
+        
+        // Handle empty data
+        if (!result?.data) {
+          setAllProducts({});
+          setLatestSales([]);
+          return;
+        }
+        
+        // Calculate all products
+        const allProductsData = result.data.reduce((acc: Record<string, number>, sale: Sale) => {
+          acc[sale.product] = (acc[sale.product] || 0) + Number(sale.amount);
+          return acc;
+        }, {} as Record<string, number>);
+        
+        setAllProducts(allProductsData);
+        setLatestSales(result.data);
+        setChartKey(prev => prev + 1);
+      } catch (error) {
+        console.error('Error fetching sales data:', error);
+        setAllProducts({});
+        setLatestSales([]);
+      } finally {
+        setIsLoading(false);
+      }
     };
     
     fetchAllData();
   }, [dispatch]);
 
   const totalSales = Object.values(allProducts).reduce((sum, amount) => sum + amount, 0);
-  const averageSale = totalSales / Object.keys(allProducts).length;
+  const averageSale = Object.keys(allProducts).length > 0 
+    ? totalSales / Object.keys(allProducts).length 
+    : 0;
 
   // Get latest 10 sales for the graph
   const chartData = latestSales.slice(0, 10)
@@ -56,6 +76,14 @@ const AnalyticsTab: React.FC = () => {
   // Sort allProducts by amount in descending order for the breakdown table
   const sortedAllProducts = Object.entries(allProducts)
     .sort(([, a], [, b]) => b - a);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-lg text-gray-600 dark:text-gray-400">Loading...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -74,67 +102,82 @@ const AnalyticsTab: React.FC = () => {
         </div>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
-        <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-6">Latest Sales by Product</h3>
-        <div className="h-[400px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart key={chartKey} data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke={isDarkMode ? '#374151' : '#E5E7EB'} />
-              <XAxis 
-                dataKey="product" 
-                stroke={isDarkMode ? '#9CA3AF' : '#6B7280'}
-                tick={{ fill: isDarkMode ? '#9CA3AF' : '#6B7280' }}
-              />
-              <YAxis 
-                stroke={isDarkMode ? '#9CA3AF' : '#6B7280'}
-                tick={{ fill: isDarkMode ? '#9CA3AF' : '#6B7280' }}
-              />
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: isDarkMode ? '#1F2937' : '#FFFFFF',
-                  border: `1px solid ${isDarkMode ? '#374151' : '#E5E7EB'}`,
-                  borderRadius: '0.5rem',
-                  color: isDarkMode ? '#F3F4F6' : '#111827'
-                }}
-                labelStyle={{ color: isDarkMode ? '#9CA3AF' : '#6B7280' }}
-              />
-              <Line 
-                type="monotone"
-                dataKey="amount" 
-                stroke={isDarkMode ? '#60A5FA' : '#3B82F6'}
-                strokeWidth={2}
-                dot={{ r: 4, fill: isDarkMode ? '#60A5FA' : '#3B82F6' }}
-                animationDuration={1000}
-                animationBegin={0}
-              />
-            </LineChart>
-          </ResponsiveContainer>
+      {chartData.length > 0 ? (
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
+          <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-6">Latest Sales by Product</h3>
+          <div className="h-[400px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart key={chartKey} data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" stroke={isDarkMode ? '#374151' : '#E5E7EB'} />
+                <XAxis 
+                  dataKey="product" 
+                  stroke={isDarkMode ? '#9CA3AF' : '#6B7280'}
+                  tick={{ fill: isDarkMode ? '#9CA3AF' : '#6B7280' }}
+                />
+                <YAxis 
+                  stroke={isDarkMode ? '#9CA3AF' : '#6B7280'}
+                  tick={{ fill: isDarkMode ? '#9CA3AF' : '#6B7280' }}
+                />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: isDarkMode ? '#1F2937' : '#FFFFFF',
+                    border: `1px solid ${isDarkMode ? '#374151' : '#E5E7EB'}`,
+                    borderRadius: '0.5rem',
+                    color: isDarkMode ? '#F3F4F6' : '#111827'
+                  }}
+                  labelStyle={{ color: isDarkMode ? '#9CA3AF' : '#6B7280' }}
+                />
+                <Line 
+                  type="monotone"
+                  dataKey="amount" 
+                  stroke={isDarkMode ? '#60A5FA' : '#3B82F6'}
+                  strokeWidth={2}
+                  dot={{ r: 4, fill: isDarkMode ? '#60A5FA' : '#3B82F6' }}
+                  animationDuration={1000}
+                  animationBegin={0}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
         </div>
-      </div>
+      ) : (
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
+          <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-6">Latest Sales by Product</h3>
+          <div className="h-[400px] flex items-center justify-center">
+            <p className="text-gray-500 dark:text-gray-400">No sales data available</p>
+          </div>
+        </div>
+      )}
 
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
         <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4">Product Breakdown</h3>
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-            <thead>
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Product</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Total Sales</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Percentage</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-              {sortedAllProducts.map(([product, amount]) => (
-                <tr key={product}>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{product}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${amount.toFixed(2)}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                    {((amount / totalSales) * 100).toFixed(1)}%
-                  </td>
+          {sortedAllProducts.length > 0 ? (
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+              <thead>
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Product</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Total Sales</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Percentage</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                {sortedAllProducts.map(([product, amount]) => (
+                  <tr key={product}>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{product}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${amount.toFixed(2)}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                      {((amount / totalSales) * 100).toFixed(1)}%
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <div className="text-center py-8">
+              <p className="text-gray-500 dark:text-gray-400">No product data available</p>
+            </div>
+          )}
         </div>
       </div>
     </div>

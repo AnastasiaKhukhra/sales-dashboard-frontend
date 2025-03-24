@@ -24,7 +24,7 @@ const SortIcon: React.FC<{ isActive: boolean; direction: SortDirection }> = ({ i
 
 const SalesTableTab: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
-  const { data: sales, loading, error, total, currentPage, itemsPerPage } = useSelector(
+  const { data: sales = [], loading, error, total, currentPage, itemsPerPage } = useSelector(
     (state: RootState) => state.sales
   );
   const [sortField, setSortField] = useState<SortField>('date');
@@ -46,7 +46,7 @@ const SalesTableTab: React.FC = () => {
       sortField,
       sortDirection
     }));
-  }, [dispatch]); // Only run once on mount
+  }, [dispatch, itemsPerPage, sortField, sortDirection]);
 
   // Subsequent data fetches when dependencies change
   useEffect(() => {
@@ -58,7 +58,7 @@ const SalesTableTab: React.FC = () => {
     }));
   }, [dispatch, currentPage, itemsPerPage, sortField, sortDirection]);
 
-  const sortedSales = [...sales].sort((a, b) => {
+  const sortedSales = [...(sales || [])].sort((a, b) => {
     if (sortField === 'product') {
       return sortDirection === 'asc'
         ? a.product.localeCompare(b.product)
@@ -74,7 +74,7 @@ const SalesTableTab: React.FC = () => {
       : new Date(b.date).getTime() - new Date(a.date).getTime();
   });
 
-  const totalPages = Math.ceil(total / itemsPerPage);
+  const totalPages = Math.ceil(total / itemsPerPage) || 1;
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
