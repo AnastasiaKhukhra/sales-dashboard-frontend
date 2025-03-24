@@ -13,6 +13,13 @@ import {
 import { useTheme } from '../context/ThemeContext';
 import { fetchSales, Sale } from '../features/salesSlice';
 
+// Format number with commas and fixed decimal places
+const formatNumber = (num: number, decimals: number = 2): string => {
+  const parts = Number(num).toFixed(decimals).split('.');
+  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  return parts.join('.');
+};
+
 const AnalyticsTab: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
   const { isDarkMode } = useTheme();
@@ -61,7 +68,8 @@ const AnalyticsTab: React.FC = () => {
     fetchAllData();
   }, [dispatch]);
 
-  const totalSales = Object.values(allProducts).reduce((sum, amount) => sum + amount, 0);
+  // Calculate total sales and ensure it's a number
+  const totalSales = Object.values(allProducts).reduce((sum, amount) => sum + Number(amount), 0);
   const averageSale = Object.keys(allProducts).length > 0 
     ? totalSales / Object.keys(allProducts).length 
     : 0;
@@ -70,7 +78,7 @@ const AnalyticsTab: React.FC = () => {
   const chartData = latestSales.slice(0, 10)
     .map(sale => ({
       product: sale.product,
-      amount: Number(parseFloat(sale.amount.toString()).toFixed(1))
+      amount: Number(sale.amount)
     }));
 
   // Sort allProducts by amount in descending order for the breakdown table
@@ -90,11 +98,11 @@ const AnalyticsTab: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
           <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">Total Sales</h3>
-          <p className="text-3xl font-bold text-blue-600 dark:text-blue-400">${totalSales.toFixed(2)}</p>
+          <p className="text-3xl font-bold text-blue-600 dark:text-blue-400">${formatNumber(totalSales)}</p>
         </div>
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
           <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">Average Sale</h3>
-          <p className="text-3xl font-bold text-green-600 dark:text-green-400">${averageSale.toFixed(2)}</p>
+          <p className="text-3xl font-bold text-green-600 dark:text-green-400">${formatNumber(averageSale)}</p>
         </div>
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
           <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">Total Products</h3>
@@ -117,6 +125,7 @@ const AnalyticsTab: React.FC = () => {
                 <YAxis 
                   stroke={isDarkMode ? '#9CA3AF' : '#6B7280'}
                   tick={{ fill: isDarkMode ? '#9CA3AF' : '#6B7280' }}
+                  tickFormatter={(value) => formatNumber(value, 1)}
                 />
                 <Tooltip 
                   contentStyle={{ 
@@ -126,6 +135,7 @@ const AnalyticsTab: React.FC = () => {
                     color: isDarkMode ? '#F3F4F6' : '#111827'
                   }}
                   labelStyle={{ color: isDarkMode ? '#9CA3AF' : '#6B7280' }}
+                  formatter={(value: number) => [`$${formatNumber(value, 1)}`, 'Amount']}
                 />
                 <Line 
                   type="monotone"
@@ -165,7 +175,7 @@ const AnalyticsTab: React.FC = () => {
                 {sortedAllProducts.map(([product, amount]) => (
                   <tr key={product}>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{product}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${amount.toFixed(2)}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${formatNumber(amount)}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                       {((amount / totalSales) * 100).toFixed(1)}%
                     </td>

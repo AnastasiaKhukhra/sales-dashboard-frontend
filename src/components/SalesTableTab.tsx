@@ -4,21 +4,23 @@ import { RootState, AppDispatch } from '../store/store';
 import { Sale, createSale, updateSale, fetchSales, setCurrentPage, setItemsPerPage } from '../features/salesSlice';
 import { format } from 'date-fns';
 
+// Format number with commas and fixed decimal places
+const formatNumber = (num: number, decimals: number = 2): string => {
+  const parts = Number(num).toFixed(decimals).split('.');
+  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  return parts.join('.');
+};
+
 type SortField = 'product' | 'amount' | 'date';
 type SortDirection = 'asc' | 'desc';
 
 const SortIcon: React.FC<{ isActive: boolean; direction: SortDirection }> = ({ isActive, direction }) => {
-  if (!isActive) return null;
-  
   return (
-    <svg
-      className={`h-4 w-4 ml-1 ${direction === 'asc' ? 'transform rotate-180' : ''}`}
-      fill="none"
-      stroke="currentColor"
-      viewBox="0 0 24 24"
-    >
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 15l7-7 7 7" />
-    </svg>
+    <span className="inline-block ml-1">
+      {isActive ? (
+        direction === 'asc' ? '↑' : '↓'
+      ) : '↕'}
+    </span>
   );
 };
 
@@ -201,7 +203,7 @@ const SalesTableTab: React.FC = () => {
                   {sale.product}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                  ${Number(sale.amount).toFixed(2)}
+                  ${formatNumber(sale.amount)}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
                   {format(new Date(sale.date), 'MMM d, yyyy')}
