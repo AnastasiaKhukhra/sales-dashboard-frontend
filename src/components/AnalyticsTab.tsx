@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { RootState, AppDispatch } from '../store/store';
+import { useDispatch } from 'react-redux';
+import { AppDispatch } from '../store/store';
 import {
   LineChart,
   Line,
@@ -11,16 +11,16 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { useTheme } from '../context/ThemeContext';
-import { fetchSales } from '../features/salesSlice';
+import { fetchSales, Sale } from '../features/salesSlice';
 
 const AnalyticsTab: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
-  const sales = useSelector((state: RootState) => state.sales.data);
   const { isDarkMode } = useTheme();
   const [chartKey, setChartKey] = useState(0);
   const [allProducts, setAllProducts] = useState<Record<string, number>>({});
+  const [latestSales, setLatestSales] = useState<Sale[]>([]);
 
-  // Fetch all sales data for total products count
+  // Fetch all sales data
   useEffect(() => {
     const fetchAllData = async () => {
       const result = await dispatch(fetchSales({ 
@@ -31,45 +31,29 @@ const AnalyticsTab: React.FC = () => {
       })).unwrap();
       
       // Calculate all products
-      const allProductsData = result.data.reduce((acc: Record<string, number>, sale: { product: string; amount: number }) => {
+      const allProductsData = result.data.reduce((acc: Record<string, number>, sale: Sale) => {
         acc[sale.product] = (acc[sale.product] || 0) + Number(sale.amount);
         return acc;
       }, {} as Record<string, number>);
       setAllProducts(allProductsData);
+      setLatestSales(result.data);
+      setChartKey(prev => prev + 1);
     };
     
     fetchAllData();
   }, [dispatch]);
 
-  // Fetch latest 10 sales for the graph and breakdown
-  useEffect(() => {
-    const fetchLatestData = async () => {
-      await dispatch(fetchSales({ 
-        page: 1, 
-        limit: 10,
-        sortField: 'date',
-        sortDirection: 'desc'
-      }));
-      setChartKey(prev => prev + 1);
-    };
-    
-    fetchLatestData();
-  }, [dispatch]);
-
   const totalSales = Object.values(allProducts).reduce((sum, amount) => sum + amount, 0);
   const averageSale = totalSales / Object.keys(allProducts).length;
-  const salesByProduct = sales.reduce((acc, sale) => {
-    acc[sale.product] = (acc[sale.product] || 0) + Number(sale.amount);
-    return acc;
-  }, {} as Record<string, number>);
 
-  const chartData = Object.entries(salesByProduct)
-    .map(([product, amount]) => ({
-      product,
-      amount: Number(amount.toFixed(1))
+  // Get latest 10 sales for the graph
+  const chartData = latestSales.slice(0, 10)
+    .map(sale => ({
+      product: sale.product,
+      amount: Number(parseFloat(sale.amount.toString()).toFixed(1))
     }));
 
-  // Sort allProducts by amount in descending order
+  // Sort allProducts by amount in descending order for the breakdown table
   const sortedAllProducts = Object.entries(allProducts)
     .sort(([, a], [, b]) => b - a);
 
