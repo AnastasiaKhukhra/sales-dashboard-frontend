@@ -30,6 +30,9 @@ const initialState: SalesState = {
   sortDirection: 'desc',
 };
 
+// Remove any trailing slashes from the API URL
+const API_URL = import.meta.env.VITE_API_URL.replace(/\/+$/, '');
+
 export const fetchSales = createAsyncThunk(
   'sales/fetchSales',
   async ({ page, limit, sortField, sortDirection }: { 
@@ -39,7 +42,7 @@ export const fetchSales = createAsyncThunk(
     sortDirection: 'asc' | 'desc';
   }) => {
     const response = await axios.get(
-      `${import.meta.env.VITE_API_URL}/sales?page=${page}&limit=${limit}&sortField=${sortField}&sortDirection=${sortDirection}`
+      `${API_URL}/sales?page=${page}&limit=${limit}&sortField=${sortField}&sortDirection=${sortDirection}`
     );
     return response.data;
   }
@@ -48,7 +51,7 @@ export const fetchSales = createAsyncThunk(
 export const createSale = createAsyncThunk(
   'sales/createSale',
   async (sale: Omit<Sale, 'id'>) => {
-    const response = await axios.post(`${import.meta.env.VITE_API_URL}/sales`, sale);
+    const response = await axios.post(`${API_URL}/sales`, sale);
     return response.data;
   }
 );
@@ -56,7 +59,7 @@ export const createSale = createAsyncThunk(
 export const updateSale = createAsyncThunk(
   'sales/updateSale',
   async ({ id, ...sale }: Sale) => {
-    const response = await axios.put(`${import.meta.env.VITE_API_URL}/sales/${id}`, sale);
+    const response = await axios.put(`${API_URL}/sales/${id}`, sale);
     return response.data;
   }
 );
@@ -64,7 +67,7 @@ export const updateSale = createAsyncThunk(
 export const deleteSale = createAsyncThunk(
   'sales/deleteSale',
   async (id: string) => {
-    await axios.delete(`${import.meta.env.VITE_API_URL}/sales/${id}`);
+    await axios.delete(`${API_URL}/sales/${id}`);
     return id;
   }
 );
@@ -72,7 +75,7 @@ export const deleteSale = createAsyncThunk(
 export const bulkCreateSales = createAsyncThunk(
   'sales/bulkCreateSales',
   async (sales: Omit<Sale, 'id'>[]) => {
-    const response = await axios.post(`${import.meta.env.VITE_API_URL}/sales/bulk`, sales);
+    const response = await axios.post(`${API_URL}/sales/bulk`, sales);
     return response.data;
   }
 );
