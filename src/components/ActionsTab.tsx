@@ -1,11 +1,10 @@
 import React, { useRef, useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { RootState, AppDispatch } from '../store/store';
+import { useDispatch } from 'react-redux';
+import { AppDispatch } from '../store/store';
 import { Sale, bulkCreateSales, fetchSales } from '../features/salesSlice';
 
 const ActionsTab: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const sales = useSelector((state: RootState) => state.sales.data);
   const dispatch = useDispatch<AppDispatch>();
   const [uploadStatus, setUploadStatus] = useState<string>('');
   const [parsedData, setParsedData] = useState<Array<Omit<Sale, 'id'>> | null>(null);

@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState, AppDispatch } from '../store/store';
 import { Sale, createSale, updateSale, fetchSales, setCurrentPage, setItemsPerPage } from '../features/salesSlice';
-import { useTheme } from '../context/ThemeContext';
 import { format } from 'date-fns';
 
 type SortField = 'product' | 'amount' | 'date';
@@ -28,7 +27,6 @@ const SalesTableTab: React.FC = () => {
   const { data: sales, loading, error, total, currentPage, itemsPerPage } = useSelector(
     (state: RootState) => state.sales
   );
-  const { isDarkMode } = useTheme();
   const [sortField, setSortField] = useState<SortField>('date');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [editingSale, setEditingSale] = useState<Sale | null>(null);
